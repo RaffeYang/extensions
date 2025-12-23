@@ -19,6 +19,13 @@
       "mode": "view",
       "preferences": [
         {
+          "name": "tophubAccessKey",
+          "type": "password",
+          "required": true,
+          "title": "TopHubData Access Key",
+          "description": "Access key for https://api.tophubdata.com/."
+        },
+        {
           "name": "rememberTag",
           "type": "checkbox",
           "required": false,
@@ -116,6 +123,13 @@
       "mode": "menu-bar",
       "interval": "10m",
       "preferences": [
+        {
+          "name": "tophubAccessKey",
+          "type": "password",
+          "required": true,
+          "title": "TopHubData Access Key",
+          "description": "Access key for https://api.tophubdata.com/."
+        },
         {
           "name": "showTrendsTitle",
           "type": "checkbox",

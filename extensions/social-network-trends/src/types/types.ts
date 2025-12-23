@@ -1,7 +1,15 @@
-export interface TenHotRes {
-  code: number;
-  msg: string;
-  data: Trend[];
+export interface TopHubNodeRes {
+  error: boolean;
+  status: number;
+  data: {
+    items: TopHubItem[];
+  };
+}
+
+export interface TopHubItem {
+  title: string;
+  url: string;
+  extra?: string;
 }
 
 export interface Trend {

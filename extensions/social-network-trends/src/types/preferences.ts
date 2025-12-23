@@ -1,6 +1,7 @@
 import { getPreferenceValues } from "@raycast/api";
 
 interface Preferences {
+  tophubAccessKey: string;
   rememberTag: boolean;
   trendsNumber: string;
   showTrendsTitle: boolean;
@@ -13,6 +14,7 @@ interface Preferences {
 }
 
 export const {
+  tophubAccessKey,
   rememberTag,
   trendsNumber,
   showTrendsTitle,

@@ -1,7 +1,7 @@
 import { Icon } from "@raycast/api";
 import fetch from "node-fetch";
-import { SocialTrend, TenHotRes, Trend } from "../types/types";
-import { showTrendsTitle, trendsNumber } from "../types/preferences";
+import { SocialTrend, TopHubNodeRes, Trend } from "../types/types";
+import { showTrendsTitle, trendsNumber, tophubAccessKey } from "../types/preferences";
 
 export const getNumberIcon = (index: number) => {
   const numberStr = index < 10 ? "0" + index : index.toString();
@@ -13,11 +13,29 @@ export const isEmpty = (str: string | undefined): boolean => {
 };
 
 export async function fetchTrend(api: string) {
-  return await fetch(api)
-    .then((response) => response.json())
-    .then((res) => {
-      return (res as TenHotRes).data;
-    });
+  const accessKey = tophubAccessKey?.trim();
+  if (!accessKey) {
+    return [];
+  }
+
+  const response = await fetch(api, {
+    headers: {
+      Authorization: accessKey,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`TopHubData request failed: ${response.status}`);
+  }
+
+  const res = (await response.json()) as TopHubNodeRes;
+  const items = res?.data?.items ?? [];
+  return items.map((item) => {
+    return {
+      name: item.title,
+      url: item.url,
+      hot: item.extra,
+    };
+  });
 }
 
 export function getMenubarTitle(socialTrend: SocialTrend[]) {

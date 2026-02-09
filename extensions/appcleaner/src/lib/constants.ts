@@ -1,7 +1,7 @@
 export const UNINSTALLERS = [
   {
     id: "appcleaner",
-    name: "AppCleaner (by FreeMacSoft)",
+    name: "AppCleaner",
     path: "/Applications/AppCleaner.app",
     url: "https://freemacsoft.net/appcleaner/",
     icon: "icon.png",

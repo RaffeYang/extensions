@@ -1,5 +1,9 @@
 # Browser Bookmarks Changelog
 
+## [Bug Fix] - 2026-02-18
+
+- Updated bundled `sql-wasm.wasm` to match upgraded `sql.js` v1.13.0, fixing `TypeError: a is not a function` crash in Firefox, LibreWolf, and Zen bookmark hooks
+
 ## [Support for Vivaldi Snapshot Browser] - 2026-02-17
 
 - Added support for `Vivaldi Snapshot` browser.

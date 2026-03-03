@@ -1,5 +1,18 @@
 # Changelog
 
+## [Update Skills] - 2026-03-01
+
+- Check for available skill updates on launch
+- Show "Update available" badge on skills with updates
+- "Updates Available" summary section with update count
+- "Update All Skills" action (Cmd+Shift+U)
+
+## [Inline Detail Panel] - 2026-02-26
+
+- Replace push-to-detail views with inline detail panels across all commands
+- Toggle detail panel visibility with Cmd+D
+- Lazy-load skill content only for the selected item
+
 ## [Install & Remove Skills] - 2026-02-17
 
 - Install skills directly from search and trending commands

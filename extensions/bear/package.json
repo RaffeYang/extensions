@@ -201,14 +201,14 @@
     "commonmark": "^0.31.0",
     "date-fns": "^3.6.0",
     "open": "^8.4.2",
-    "sql.js": "^1.10.3"
+    "sql.js": "^1.14.1"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^1.0.8",
     "@types/commonmark": "^0.27.9",
     "@types/node": "^20.14.9",
     "@types/react": "^18.3.3",
-    "@types/sql.js": "^1.4.9",
+    "@types/sql.js": "^1.4.11",
     "eslint": "^8.57.0",
     "prettier": "^3.3.2",
     "typescript": "^5.5.3"

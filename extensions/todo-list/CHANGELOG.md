@@ -1,5 +1,13 @@
 # Todo List Changelog
 
+## [Fix Edit Due Date keyboard shortcut] - 2026-07-17
+
+- Previously "Edit Todo" and "Edit Due Date" had the same keyboard shortcut Cmd + E. Now "Edit Due Date" shortcut is Cmd + Shift + E.
+
+## [New Preference Option: Throw confettis on task completion] - 2026-06-25
+
+- Added preference options for throwing Raycast confettis on task completion
+
 ## [Clear search bar not text after adding todo on Windows] - 2026-03-19
 
 - When pressing enter to add a todo, clear the search bar text (text was not cleared on Windows)

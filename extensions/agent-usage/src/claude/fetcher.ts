@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from "react";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { execSync } from "node:child_process";
 import type { ClaudeUsage, ClaudeError } from "./types";
 
-const CLAUDE_CREDENTIALS_PATH = path.join(os.homedir(), ".claude", ".credentials.json");
+const CLAUDE_CONFIG_DIR_ENV = "CLAUDE_CONFIG_DIR";
+const DEFAULT_CLAUDE_CONFIG_DIR = path.join(os.homedir(), ".claude");
+const CLAUDE_CREDENTIALS_FILE = ".credentials.json";
 const CLAUDE_USAGE_API = "https://api.anthropic.com/api/oauth/usage";
 const KEYCHAIN_SERVICE = "Claude Code-credentials";
 const REQUEST_TIMEOUT = 10000;
@@ -23,6 +24,7 @@ interface ClaudeCredentials {
   rateLimitTier?: string;
   subscriptionType?: string;
   source: CredentialSource;
+  credentialsPath?: string;
   keychainAccount?: string;
   raw: {
     claudeAiOauth?: {
@@ -80,6 +82,13 @@ function pickString(...values: unknown[]): string | undefined {
     }
   }
   return undefined;
+}
+
+export function resolveClaudeCredentialsPaths(env: NodeJS.ProcessEnv = process.env): string[] {
+  const configuredDir = env[CLAUDE_CONFIG_DIR_ENV]?.trim();
+  const configDirs = configuredDir ? [configuredDir, DEFAULT_CLAUDE_CONFIG_DIR] : [DEFAULT_CLAUDE_CONFIG_DIR];
+
+  return [...new Set(configDirs.map((configDir) => path.resolve(configDir, CLAUDE_CREDENTIALS_FILE)))];
 }
 
 function inferPlan(rateLimitTier?: string, subscriptionType?: string): string {
@@ -205,6 +214,7 @@ function writeKeychainPassword(service: string, account: string, value: string):
 function extractCredentials(
   parsed: CredentialsParsed,
   source: CredentialSource,
+  credentialsPath?: string,
   keychainAccount?: string,
 ): { credentials: ClaudeCredentials | null; error: ClaudeError | null } {
   const oauth = parsed.claudeAiOauth;
@@ -244,6 +254,7 @@ function extractCredentials(
       rateLimitTier,
       subscriptionType,
       source,
+      credentialsPath,
       keychainAccount,
       raw: parsed,
     },
@@ -251,14 +262,16 @@ function extractCredentials(
   };
 }
 
-function readClaudeCredentials(): { credentials: ClaudeCredentials | null; error: ClaudeError | null } {
-  // Strategy 1: Try credentials file first
-  if (fs.existsSync(CLAUDE_CREDENTIALS_PATH)) {
+export function readClaudeCredentials(): { credentials: ClaudeCredentials | null; error: ClaudeError | null } {
+  // Strategy 1: Try configured/default credential paths first
+  for (const credentialsPath of resolveClaudeCredentialsPaths()) {
+    if (!fs.existsSync(credentialsPath)) continue;
+
     try {
-      const text = fs.readFileSync(CLAUDE_CREDENTIALS_PATH, "utf-8");
+      const text = fs.readFileSync(credentialsPath, "utf-8");
       const parsed = tryParseCredentialJSON(text);
       if (parsed?.claudeAiOauth?.accessToken) {
-        return extractCredentials(parsed, "file");
+        return extractCredentials(parsed, "file", credentialsPath);
       }
     } catch {
       // Fall through to keychain
@@ -271,7 +284,7 @@ function readClaudeCredentials(): { credentials: ClaudeCredentials | null; error
     if (keychainValue) {
       const parsed = tryParseCredentialJSON(keychainValue);
       if (parsed?.claudeAiOauth?.accessToken) {
-        return extractCredentials(parsed, "keychain", readKeychainAccount(KEYCHAIN_SERVICE) ?? undefined);
+        return extractCredentials(parsed, "keychain", undefined, readKeychainAccount(KEYCHAIN_SERVICE) ?? undefined);
       }
     }
   }
@@ -309,7 +322,8 @@ function persistRefreshedCredentials(credentials: ClaudeCredentials, refreshed: 
     writeKeychainPassword(KEYCHAIN_SERVICE, credentials.keychainAccount, JSON.stringify(next));
   } else {
     try {
-      fs.writeFileSync(CLAUDE_CREDENTIALS_PATH, `${JSON.stringify(next, null, 2)}\n`, "utf-8");
+      const credentialsPath = credentials.credentialsPath ?? resolveClaudeCredentialsPaths()[0];
+      fs.writeFileSync(credentialsPath, `${JSON.stringify(next, null, 2)}\n`, "utf-8");
     } catch {
       // Best effort; continue with refreshed token in memory
     }
@@ -347,7 +361,7 @@ async function refreshClaudeAccessToken(credentials: ClaudeCredentials): Promise
   return data;
 }
 
-async function fetchClaudeUsage(
+export async function fetchClaudeUsage(
   credentials: ClaudeCredentials,
 ): Promise<{ usage: ClaudeUsage | null; error: ClaudeError | null }> {
   try {
@@ -504,70 +518,4 @@ async function fetchClaudeUsage(
       },
     };
   }
-}
-
-export function useClaudeUsage(enabled = true) {
-  const [usage, setUsage] = useState<ClaudeUsage | null>(null);
-  const [error, setError] = useState<ClaudeError | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [hasInitialFetch, setHasInitialFetch] = useState<boolean>(false);
-  const requestIdRef = useRef(0);
-
-  const fetchData = useCallback(async () => {
-    const requestId = ++requestIdRef.current;
-
-    setIsLoading(true);
-    setError(null);
-
-    const { credentials, error: credentialsError } = readClaudeCredentials();
-    if (!credentials) {
-      if (requestId !== requestIdRef.current) {
-        return;
-      }
-      setUsage(null);
-      setError(credentialsError);
-      setIsLoading(false);
-      setHasInitialFetch(true);
-      return;
-    }
-
-    const result = await fetchClaudeUsage(credentials);
-    if (requestId !== requestIdRef.current) {
-      return;
-    }
-    setUsage(result.usage);
-    setError(result.error);
-    setIsLoading(false);
-    setHasInitialFetch(true);
-  }, []);
-
-  useEffect(() => {
-    if (!enabled) {
-      requestIdRef.current += 1;
-      setUsage(null);
-      setError(null);
-      setIsLoading(false);
-      setHasInitialFetch(false);
-      return;
-    }
-
-    if (!hasInitialFetch) {
-      void fetchData();
-    }
-  }, [enabled, hasInitialFetch, fetchData]);
-
-  const revalidate = useCallback(async () => {
-    if (!enabled) {
-      return;
-    }
-
-    await fetchData();
-  }, [enabled, fetchData]);
-
-  return {
-    isLoading: enabled ? isLoading : false,
-    usage: enabled ? usage : null,
-    error: enabled ? error : null,
-    revalidate,
-  };
 }
